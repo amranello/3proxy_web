@@ -1,0 +1,22 @@
+-define(HOST, "192.168.2.47:5984").
+-define(USR_NAME, "User").
+-define(USR_PASS, "Password").
+-define(USR_LOGIN, "Login").
+-define(USR_REQ, "Required").
+-define(USR_NPASS, "Not valid").
+-define(FDB, "Database").
+-define(FDATE, "Date").
+-define(FTIME, "Time").
+-define(FUSR, "User").
+-define(FHOST, "Host").
+-define(FURL, "Url").
+-define(FTRAF, "Traff").
+-define(FFILT, "Filter").
+-define(FST, "Start").
+-define(FEND, "End").
+-define(FDAY, "Day").
+-define(FPREV, "Prev").
+-define(FNEXT, "Next").
+-define(FLOGIN, "Need login").
+-define(FWEL, "Welcome").
+-define(FLOGU, "Logout").

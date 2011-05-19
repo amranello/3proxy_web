@@ -1,0 +1,39 @@
+.wfid_pr3 {
+  margin: 10px;
+}
+
+.wfid_logu {
+  margin: 5px 10px;
+}
+
+.wfid_filter {
+  margin: 5px 20px; border: solid 1px red;
+}
+
+.fp {
+  margin: 5px 30px; border: solid 1px green;
+}
+
+.wfid_bfilter {
+  margin-left: 20px;
+}
+
+.wfid_pdata {
+  padding: 5px; margin: 5px 20px; border: solid 1px cyan;
+}
+
+.wfid_pdatar {
+  width: 100%; padding: 3px; border: ridge 3px blue;
+}
+
+.pdatac {
+  border: solid 1px blue;
+}
+
+.wfid_data_tab {
+  width: 100%;
+}
+
+.sel {
+  border: inset 0px green;
+}
