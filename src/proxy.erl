@@ -1,20 +1,3 @@
-%% @author Oleg Krivosheev <amranello@gmail.com>
-%% @copyright 2010 Oleg Krivosheev
-
-%% Copyright 2010 Oleg Krivosheev
-%%
-%% Licensed under the Apache License, Version 2.0 (the "License");
-%% you may not use this file except in compliance with the License.
-%% You may obtain a copy of the License at
-%%
-%% http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing, software
-%% distributed under the License is distributed on an "AS IS" BASIS,
-%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%% See the License for the specific language governing permissions and
-%% limitations under the License.
-
 %% -*- mode: nitrogen -*-
 -module (proxy).
 -compile(export_all).
@@ -72,13 +55,13 @@ body() ->
      ]
    },
    #panel { id = fusr, class = fp, actions = #hide { effect = slide, speed = 2 }, body = [
-      ?FUSR, "&nbsp", #dropdown { id = fusr_el, options = [ #option { text = "", value = "" } ] },
-      "&nbsp;", #link { text = ?FRELOAD, postback = { reload, "users", fusr_el } }
+      #link { text = ?FUSR, postback = { reload, "users", fusr_el } }, "&nbsp",
+      #dropdown { id = fusr_el, options = [ #option { text = "", value = "" } ] }, "&nbsp;"
      ]
    },
    #panel { id = fhost, class = fp, actions = #hide { effect = slide, speed = 2 }, body = [
-      ?FHOST, "&nbsp", #dropdown { id = fhost_el, options = [ #option { text = "", value = "" } ] },
-      "&nbsp;", #link { text = ?FRELOAD, postback = { reload, "hosts", fhost_el } }
+      #link { text = ?FHOST, postback = { reload, "hosts", fhost_el } }, "&nbsp",
+      #dropdown { id = fhost_el, options = [ #option { text = "", value = "" } ] }, "&nbsp;"
      ]
    },
    #panel { id = furl, class = fp, actions = #hide { effect = slide, speed = 2 }, body = [
@@ -93,10 +76,10 @@ body() ->
    },
    #button { id = bfilter, text = ?FFILT, postback = bfilter },
    #panel { id = pdata, body = [
-      #singlerow { id = pdatar, cells = [] },
+      %#singlerow { id = pdatar, cells = [] },
       #table { id = data_tab, rows = [] },
       #br {},
-      #link { text = ?FPREV }, "&nbsp;",
+      #link { id = pprev, text = ?FPREV, postback = pprev }, "&nbsp;",
       #dropdown { id = pages, options = [ #option { text = "10", value = "10" } ] }, "&nbsp;",
       #link { id = pnext, text = ?FNEXT, postback = pnext }
      ]
@@ -106,16 +89,11 @@ body() ->
 event({ show, El, Pt }) ->
   case wf:state_default(El, false) of
     false ->
-      ?MODULE:El(),
       %wf:wire(Pt, #animate { options = [{borderWidth, "1px"}] }),
-      wf:wire(Pt, #animate { options = [{backgroundColor, "yellow"}] }),
-      wf:wire(El, #show { effect = slide, speed = 200, options = [ { direction, up } ] }),
-      wf:state(El, true);
+      show_menu(El, Pt);
     true ->
       %wf:wire(Pt, #animate { options = [{borderWidth, "0px"}] }),
-      wf:wire(Pt, #animate { options = [{backgroundColor, "white"}] }),
-      wf:wire(El, #hide { effect = slide, speed = 200, options = [ { direction, up } ] }),
-      wf:state(El, false)
+      hide_menu(El, Pt)
   end;
 
 event({ reload, View, El }) ->
@@ -129,28 +107,58 @@ event({ chg, fdb_el }) ->
   wf:send(<<"proc">>, {upd, fv_el});
 
 event({ chg, fv_el }) ->
-  wf:state(fv_el, wf:q(fv_el));
+  case wf:q(fv_el) of
+    "user_u" ->
+      %hide_menu(),
+      show_menu(fusr, lusr),
+      wf:state(showed, [{fusr, lusr}|wf:state_default(showed, [])]),
+      wf:wire(bfilter, fusr_el, #validate { validators = [ #is_required { text = ?USR_REQ } ] });
+    "user_ud" ->
+      %hide_menu(),
+      show_menu(fusr, lusr),
+      wf:state(showed, [{fusr, lusr}|wf:state_default(showed, [])]),
+      wf:wire(bfilter, fusr_el, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
+      show_menu(ftime, ltime),
+      wf:state(showed, [{ftime, ltime}|wf:state_default(showed, [])]),
+      wf:wire(bfilter, fday_st, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
+      wf:wire(bfilter, fday_end, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
+      wf:wire(bfilter, ftime_st, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
+      wf:wire(bfilter, ftime_end, #validate { validators = [ #is_required { text = ?USR_REQ } ] });
+    _ ->
+      ok
+  end;
 
 event(bfilter) ->
   Tid = wf:temp_id(),
   wf:flash(Tid, "Wait..."),
   Url = case wf:q(fv_el) of
           "user_u" ->
-            lists:flatten(io_lib:format("http://~s:~s@~s/~s/_design/norm/_view/user_u?key=[\"~s\"]&limit=~s&skip=~s",
+            lists:flatten(io_lib:format("http://~s:~s@~s/~s/_design/norm/_view/user_u?key=[\"~s\"]&limit=~s&skip=~B",
               [wf:user(), wf:session_default(<<"upass">>, "1"), ?HOST, wf:q(fdb_el), wf:q(fusr_el), wf:q(pages),
-              wf:state_default(<<"page">>, "0")]));
+              wf:state_default(<<"page">>, 0)]));
           _ ->
             wf:flash("Not valid view"),
             ""
         end,
   wf:flush(),
   gen_data(Url),
-  wf:flash("Done"),
+  %wf:flash("Done"),
   wf:wire(Tid, #hide { effect = slide, speed = 300 });
+  %wf:flush();
   %wf:send(<<"proc">>, {get_dat, Url, Tid});
 
 event(pnext) ->
-  wf:state(<<"page">>, integer_to_list(list_to_integer(wf:state_default(<<"page">>, "0")) + list_to_integer(wf:q(pages)))),
+  wf:state(<<"page">>, wf:state_default(<<"page">>, 0) + list_to_integer(wf:q(pages))),
+  event(bfilter);
+
+event(pprev) ->
+  Pg = wf:state_default(<<"page">>, 0) - list_to_integer(wf:q(pages)),
+  if
+    Pg > 0 ->
+      wf:state(<<"page">>, Pg);
+    true ->
+      wf:state(<<"page">>, 0)
+  end,
   event(bfilter);
 
 event(logout) ->
@@ -161,6 +169,21 @@ event(logout) ->
 event(login) ->
   %wf:session(fdb_el, wf:q(fdb_el)),
   wf:redirect_to_login("/proxy/login").
+
+show_menu(El, PEl) ->
+  ?MODULE:El(),
+  wf:wire(PEl, #animate { options = [{backgroundColor, "yellow"}] }),
+  wf:wire(El, #show { effect = slide, speed = 200, options = [ { direction, up } ] }),
+  wf:state(El, true).
+
+hide_menu(El, PEl) ->
+  wf:wire(PEl, #animate { options = [{backgroundColor, "white"}] }),
+  wf:wire(El, #hide { effect = slide, speed = 200, options = [ { direction, up } ] }),
+  wf:state(El, false).
+
+hide_menu() ->
+  Mns = wf:state_default(showed, []),
+  lists:foreach(fun({El, Pt}) -> hide_menu(El, Pt) end, Mns).
 
 fdb() ->
   case wf:state_default({cache, fdb_el}, 0) of
@@ -214,16 +237,34 @@ gen_data(Url) ->
       TabRows = lists:map(FunRow, Rows),
       [Hd|_] = TabRows,
       FunHd = fun({Key, _}) ->
-                #tablecell { class = pdatac, text = binary_to_list(Key) }
+                LKey = binary_to_list(Key),
+                St = case LKey of
+                       "host" ->
+                         "width: 20%;";
+                       "url" ->
+                         "width: 40%;";
+                       _ ->
+                         "width: 10%;"
+                     end,
+                #tablecell { style = St, class = pdatah, text = LKey }
               end,
-      wf:update(pdatar, lists:map(FunHd, Hd)),
-      FunC = fun({_, Dat}) ->
-               #tablecell { class = pdatac, text = binary_to_list(Dat) }
+      wf:update(data_tab, lists:map(FunHd, Hd)),
+      FunC = fun({Key, Dat}) ->
+                LKey = binary_to_list(Key),
+                St = case LKey of
+                       "host" ->
+                         "width: 20%;";
+                       "url" ->
+                         "width: 40%;";
+                       _ ->
+                         "width: 10%;"
+                     end,
+               #tablecell { style = St, class = pdatac, text = binary_to_list(Dat) }
              end,
       FunR = fun(Els) ->
                #tablerow { cells = lists:map(FunC, Els) }
              end,
-      wf:update(data_tab, lists:map(FunR, TabRows));
+      wf:insert_bottom(data_tab, lists:map(FunR, TabRows));
     _ ->
       wf:flash(["Couchdb error: ", HMsg])
   end.
