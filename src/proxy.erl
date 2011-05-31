@@ -1,3 +1,20 @@
+%% @author Oleg Krivosheev <amranello@gmail.com>
+%% @copyright 2010 Oleg Krivosheev
+
+%% Copyright 2010 Oleg Krivosheev
+%%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%%
+%% http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+
 %% -*- mode: nitrogen -*-
 -module (proxy).
 -compile(export_all).
@@ -107,19 +124,23 @@ event({ chg, fdb_el }) ->
   wf:send(<<"proc">>, {upd, fv_el});
 
 event({ chg, fv_el }) ->
+  wf:state(<<"page">>, 0),
   case wf:q(fv_el) of
     "user_u" ->
-      %hide_menu(),
+      wf:state(showed, wf:state_default(showed, []) -- [{fusr, lusr}]),
+      hide_menu(),
+      wf:flush(),
       show_menu(fusr, lusr),
-      wf:state(showed, [{fusr, lusr}|wf:state_default(showed, [])]),
+      wf:state(showed, [{fusr, lusr}]),
       wf:wire(bfilter, fusr_el, #validate { validators = [ #is_required { text = ?USR_REQ } ] });
     "user_ud" ->
-      %hide_menu(),
+      wf:state(showed, wf:state_default(showed, []) -- [{fusr, lusr}, {ftime, ltime}]),
+      hide_menu(),
+      wf:flush(),
       show_menu(fusr, lusr),
-      wf:state(showed, [{fusr, lusr}|wf:state_default(showed, [])]),
       wf:wire(bfilter, fusr_el, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
       show_menu(ftime, ltime),
-      wf:state(showed, [{ftime, ltime}|wf:state_default(showed, [])]),
+      wf:state(showed, [{fusr, lusr}, {ftime, ltime}]),
       wf:wire(bfilter, fday_st, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
       wf:wire(bfilter, fday_end, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
       wf:wire(bfilter, ftime_st, #validate { validators = [ #is_required { text = ?USR_REQ } ] }),
@@ -171,10 +192,15 @@ event(login) ->
   wf:redirect_to_login("/proxy/login").
 
 show_menu(El, PEl) ->
-  ?MODULE:El(),
-  wf:wire(PEl, #animate { options = [{backgroundColor, "yellow"}] }),
-  wf:wire(El, #show { effect = slide, speed = 200, options = [ { direction, up } ] }),
-  wf:state(El, true).
+  case wf:state_default(El, false) of
+    false ->
+      ?MODULE:El(),
+      wf:wire(PEl, #animate { options = [{backgroundColor, "yellow"}] }),
+      wf:wire(El, #show { effect = slide, speed = 200, options = [ { direction, up } ] }),
+      wf:state(El, true);
+    _ ->
+      ok
+  end.
 
 hide_menu(El, PEl) ->
   wf:wire(PEl, #animate { options = [{backgroundColor, "white"}] }),
